@@ -9,7 +9,7 @@ class DataLoader:
     self.height = trans_height
     self.root = data_dir
 
-  def load(self, transform, dataset="/test", batch_size=10, shuffle=True, workers=2):
-    dataset = datasets.ImageFolder(root=self.root + dataset, transform=transform)
+  def load(self, transform, batch_size=10, shuffle=True, workers=2):
+    dataset = datasets.ImageFolder(root=self.root, transform=transform)
     dataset = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=workers)
     return dataset

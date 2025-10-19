@@ -139,7 +139,7 @@ class Trainer:
              training_accuracy=self.training_accuracy,
              validation_accuracy=self.validation_accuracy),
         save_path)
-    print(f"MLP Training Loss saved to {save_path} at Epoch {trained_epochs}")
+    print(f"CNN Training Loss saved to {save_path} at Epoch {trained_epochs}")
 
   def load(self, load_dir):
     checkpoint = torch.load(load_dir, weights_only=True)
