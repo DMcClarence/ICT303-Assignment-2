@@ -32,7 +32,7 @@ class CNN(nn.Module):
 
     @staticmethod
     def loss(y_hat, y):
-        fn = nn.CrossEntropyLoss()
+        fn = nn.BCEWithLogitsLoss
         return fn(y_hat, y)
 
     def configure_optimiser(self):

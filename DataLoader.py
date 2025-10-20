@@ -11,8 +11,8 @@ class DataLoader:
 
   def load(self, transform, batch_size=10, shuffle=True, workers=2):
     dataset = datasets.ImageFolder(root=self.root, transform=transform)
-    train_size = int(len(dataset) * 0.8) # 80%
-    valid_size = int(len(dataset) * 0.1) # 10%
+    train_size = int(len(dataset) * 0.7) # 70%
+    valid_size = int(len(dataset) * 0.2) # 20%
     test_size = int(len(dataset) * 0.1)  # 10%
     training_data, validation_data, test_data = torch.utils.data.random_split(dataset, [train_size, valid_size, test_size])
 
