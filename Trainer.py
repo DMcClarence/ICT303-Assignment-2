@@ -23,7 +23,7 @@ class Trainer:
     return lr * 0.95
 
   # The fitting step
-  def fit(self, model, data, valid, resume=False, completed_epochs=None, use_lr_scheduler=True):
+  def fit(self, writer, model, data, valid, resume=False, completed_epochs=None, use_lr_scheduler=True):
     self.data = data
     self.valid = valid
 
@@ -38,16 +38,23 @@ class Trainer:
 
     for epoch in range(self.max_epochs):
       print("Epoch: ", epoch + completed_epochs if resume else epoch)
+
       print("Training:")
       self.model.train()
-      self.avg_train_loss.append(self.fit_epoch())
-      if use_lr_scheduler:
-        self.model.lr = self.exp_lr(self.model.lr)
-      self.evaluate(self.model, self.data, train=True, plot_cm=False)
+      self.fit_epoch()
 
       self.model.eval()
       print("Validating:")
-      self.avg_valid_loss.append(self.validate_epoch())
+      self.validate_epoch()
+
+      if use_lr_scheduler:
+        self.model.lr = self.exp_lr(self.model.lr)
+
+      writer.add_scaler('CNN', {'Avg_Training_Loss': self.avg_train_loss[epoch],
+                                     'Avg_Validation_Loss': self.avg_valid_loss[epoch],
+                                     'Training_Accuracy(x100)%': self.training_accuracy[epoch],
+                                     'Validation_Accuracy(x100)%': self.validation_accuracy[epoch]}, epoch)
+
       self.evaluate(self.model, self.valid, train=False, plot_cm=True)
 
       if epoch % 5 == 0 or epoch == self.max_epochs - 1:
@@ -58,7 +65,7 @@ class Trainer:
 
   def fit_epoch(self):
     current_loss = 0.0
-    overall_loss = 0.0
+    avg_training_loss = 0.0
 
     for i, data in enumerate(self.data):
       # Get input and its corresponding groundtruth output
@@ -80,17 +87,21 @@ class Trainer:
       self.optimiser.step()
 
       current_loss += loss.item()
-      overall_loss += loss.item()
+      avg_training_loss += loss.item()
+
       if i % 10 == 9:
           print('Loss after mini-batch %5d: %.3f' %
                 (i + 1, current_loss / 10))
           current_loss = 0.0
-    return overall_loss / len(self.data.dataset)
+
+      avg_training_loss = avg_training_loss / i
+
+    self.avg_train_loss.append(avg_training_loss)
 
   @torch.no_grad()
   def validate_epoch(self):
     current_loss = 0.0
-    overall_loss = 0.0
+    avg_validation_loss = 0.0
 
     for i, data in enumerate(self.valid):
       inputs, target = data
@@ -98,13 +109,19 @@ class Trainer:
 
       outputs = self.model(inputs)
 
-      current_loss += self.model.loss(outputs, target).item()
-      overall_loss += current_loss
+      loss = self.model.loss(outputs, target)
+
+      current_loss += loss.item()
+      avg_validation_loss += loss.item()
+
       if i % 10 == 9:
           print('Loss after mini-batch %5d: %.3f' %
                 (i + 1, current_loss / 10))
           current_loss = 0.0
-    return overall_loss / len(self.valid.dataset)
+
+      avg_validation_loss = avg_validation_loss / i
+
+    self.avg_valid_loss.append(avg_validation_loss)
 
   @torch.no_grad()
   def evaluate(self, model, data, train=False, plot_cm=False):
