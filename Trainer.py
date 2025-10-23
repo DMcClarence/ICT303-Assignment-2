@@ -43,17 +43,17 @@ class Trainer:
       self.model.train()
       self.fit_epoch()
 
-      self.model.eval()
       print("Validating:")
+      self.model.eval()
       self.validate_epoch()
 
       if use_lr_scheduler:
         self.model.lr = self.exp_lr(self.model.lr)
 
       writer.add_scaler('CNN', {'Avg_Training_Loss': self.avg_train_loss[epoch],
-                                     'Avg_Validation_Loss': self.avg_valid_loss[epoch],
-                                     'Training_Accuracy(x100)%': self.training_accuracy[epoch],
-                                     'Validation_Accuracy(x100)%': self.validation_accuracy[epoch]}, epoch)
+                                'Avg_Validation_Loss': self.avg_valid_loss[epoch],
+                                'Training_Accuracy(x100)%': self.training_accuracy[epoch],
+                                'Validation_Accuracy(x100)%': self.validation_accuracy[epoch]}, epoch)
 
       self.evaluate(self.model, self.valid, train=False, plot_cm=True)
 
@@ -102,6 +102,10 @@ class Trainer:
   def validate_epoch(self):
     current_loss = 0.0
     avg_validation_loss = 0.0
+    correct = 0
+    total = 0
+    predictions = []
+    truths = []
 
     for i, data in enumerate(self.valid):
       inputs, target = data
@@ -121,7 +125,16 @@ class Trainer:
 
       avg_validation_loss = avg_validation_loss / i
 
+      est_label = torch.max(outputs, 1).indices
+      correct += sum(est_label == target)
+      total += target.size(0)
+      for label in est_label.cpu():
+          predictions.append(label)
+      for label in target.cpu():
+          truths.append(label)
+
     self.avg_valid_loss.append(avg_validation_loss)
+    self.validation_accuracy.append(float((correct / total)))
 
   @torch.no_grad()
   def evaluate(self, model, data, train=False, plot_cm=False):
