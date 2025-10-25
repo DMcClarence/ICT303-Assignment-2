@@ -70,41 +70,43 @@ class Trainer:
         truths = []
 
         for i, data in enumerate(self.data):
-          # Get input and its corresponding groundtruth output
-          inputs, target = data
-          inputs, target = inputs.to(self.device), target.to(self.device)
+            # Get input and its corresponding groundtruth output
+            inputs, target = data
+            inputs, target = inputs.to(self.device), target.to(self.device)
 
-          self.optimiser.zero_grad()
+            self.optimiser.zero_grad()
 
-          # get output from the model, given the inputs
-          outputs = self.model(inputs)
+            # get output from the model, given the inputs
+            outputs = self.model(inputs)
 
-          # get loss for the predicted output
-          loss = self.model.loss(y_hat=outputs, y=target)
+            print(outputs.shape)
+            print(target.shape)
 
-          # get gradients w.r.t the parameters of the model
-          loss.backward()
+            # get loss for the predicted output
+            loss = self.model.loss(y_hat=outputs, y=target)
 
-          # update the parameters (perform optimization)
-          self.optimiser.step()
+            # get gradients w.r.t the parameters of the model
+            loss.backward()
 
-          current_loss += loss.item()
-          avg_training_loss += loss.item()
+            # update the parameters (perform optimization)
+            self.optimiser.step()
 
-          if i % 10 == 9:
-              print('Loss after mini-batch %5d: %.3f' %
-                    (i + 1, current_loss / 10))
-              current_loss = 0.0
+            current_loss += loss.item()
+            avg_training_loss += loss.item()
 
-          avg_training_loss = avg_training_loss / i
+            if i % 10 == 9:
+                print('Loss after mini-batch %5d: %.3f' % (i + 1, current_loss / 10))
+                current_loss = 0.0
 
-          est_label = torch.max(outputs, 1).indices
-          correct += sum(est_label == target)
-          total += target.size(0)
-          for label in est_label.cpu():
-              predictions.append(label)
-          for label in target.cpu():
-              truths.append(label)
+            avg_training_loss = avg_training_loss / i
+
+            est_label = torch.max(outputs, 1).indices
+            correct += sum(est_label == target)
+            total += target.size(0)
+            for label in est_label.cpu():
+                predictions.append(label)
+            for label in target.cpu():
+                truths.append(label)
 
         self.avg_train_loss.append(avg_training_loss)
         self.validation_accuracy.append(float((correct / total)))
@@ -123,30 +125,29 @@ class Trainer:
         truths = []
 
         for i, data in enumerate(self.valid):
-          inputs, target = data
-          inputs, target = inputs.to(self.device), target.to(self.device)
+            inputs, target = data
+            inputs, target = inputs.to(self.device), target.to(self.device)
 
-          outputs = self.model(inputs)
+            outputs = self.model(inputs)
 
-          loss = self.model.loss(outputs, target)
+            loss = self.model.loss(outputs, target)
 
-          current_loss += loss.item()
-          avg_validation_loss += loss.item()
+            current_loss += loss.item()
+            avg_validation_loss += loss.item()
 
-          if i % 10 == 9:
-              print('Loss after mini-batch %5d: %.3f' %
-                    (i + 1, current_loss / 10))
-              current_loss = 0.0
+            if i % 10 == 9:
+                print('Loss after mini-batch %5d: %.3f' % (i + 1, current_loss / 10))
+                current_loss = 0.0
 
-          avg_validation_loss = avg_validation_loss / i
+            avg_validation_loss = avg_validation_loss / i
 
-          est_label = torch.max(outputs, 1).indices
-          correct += sum(est_label == target)
-          total += target.size(0)
-          for label in est_label.cpu():
-              predictions.append(label)
-          for label in target.cpu():
-              truths.append(label)
+            est_label = torch.max(outputs, 1).indices
+            correct += sum(est_label == target)
+            total += target.size(0)
+            for label in est_label.cpu():
+                predictions.append(label)
+            for label in target.cpu():
+                truths.append(label)
 
         self.avg_valid_loss.append(avg_validation_loss)
         self.validation_accuracy.append(float((correct / total)))
