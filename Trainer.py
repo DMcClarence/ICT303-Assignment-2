@@ -50,10 +50,10 @@ class Trainer:
             if use_lr_scheduler:
                 self.model.lr = self.exp_lr(self.model.lr)
 
-            writer.add_scaler('CNN', {'Avg_Training_Loss': self.avg_train_loss[epoch],
-                                      'Avg_Validation_Loss': self.avg_valid_loss[epoch],
-                                      'Training_Accuracy(x100)%': self.training_accuracy[epoch],
-                                      'Validation_Accuracy(x100)%': self.validation_accuracy[epoch]}, epoch)
+            writer.add_scalars('CNN', {'Avg_Training_Loss': self.avg_train_loss[epoch],
+                                       'Avg_Validation_Loss': self.avg_valid_loss[epoch],
+                                       'Training_Accuracy(x100)%': self.training_accuracy[epoch],
+                                       'Validation_Accuracy(x100)%': self.validation_accuracy[epoch]}, epoch)
 
             if epoch % 5 == 0 or epoch == self.max_epochs - 1:
                 self.model.save(save_dir=self.log_dir, trained_epochs=epoch)
@@ -72,15 +72,12 @@ class Trainer:
         for i, data in enumerate(self.data):
             # Get input and its corresponding groundtruth output
             inputs, target = data
-            inputs, target = inputs.to(self.device), target.to(self.device)
+            inputs, target = inputs.to(self.device), target.to(self.device).float()
 
             self.optimiser.zero_grad()
 
             # get output from the model, given the inputs
-            outputs = self.model(inputs)
-
-            print(outputs.shape)
-            print(target.shape)
+            outputs = self.model(inputs).squeeze(1)
 
             # get loss for the predicted output
             loss = self.model.loss(y_hat=outputs, y=target)
@@ -98,9 +95,10 @@ class Trainer:
                 print('Loss after mini-batch %5d: %.3f' % (i + 1, current_loss / 10))
                 current_loss = 0.0
 
-            avg_training_loss = avg_training_loss / i
+            avg_training_loss = avg_training_loss / (i + 1)
 
-            est_label = torch.max(outputs, 1).indices
+            preds = torch.sigmoid(outputs)
+            est_label = (preds >= 0.5).float()
             correct += sum(est_label == target)
             total += target.size(0)
             for label in est_label.cpu():
@@ -109,7 +107,7 @@ class Trainer:
                 truths.append(label)
 
         self.avg_train_loss.append(avg_training_loss)
-        self.validation_accuracy.append(float((correct / total)))
+        self.training_accuracy.append(float((correct / total)))
 
         plot_confusion_matrix(save_dir=self.log_dir, est=predictions, gnd_truth=truths, labels=self.data.dataset.classes)
         print("Training Accuracy: ", float((correct / total) * 100), "%")
@@ -126,11 +124,11 @@ class Trainer:
 
         for i, data in enumerate(self.valid):
             inputs, target = data
-            inputs, target = inputs.to(self.device), target.to(self.device)
+            inputs, target = inputs.to(self.device), target.to(self.device).float()
 
-            outputs = self.model(inputs)
+            outputs = self.model(inputs).squeeze(1)
 
-            loss = self.model.loss(outputs, target)
+            loss = self.model.loss(y_hat=outputs, y=target)
 
             current_loss += loss.item()
             avg_validation_loss += loss.item()
@@ -139,9 +137,10 @@ class Trainer:
                 print('Loss after mini-batch %5d: %.3f' % (i + 1, current_loss / 10))
                 current_loss = 0.0
 
-            avg_validation_loss = avg_validation_loss / i
+            avg_validation_loss = avg_validation_loss / (i + 1)
 
-            est_label = torch.max(outputs, 1).indices
+            preds = torch.sigmoid(outputs)
+            est_label = (preds >= 0.5).float()
             correct += sum(est_label == target)
             total += target.size(0)
             for label in est_label.cpu():
